@@ -1,7 +1,9 @@
 "use strict";
 
 const mongoose = require("mongoose");
-const URL_MONGODB = process.env.URL_MONGODB;
+const {
+  db: { host, port },
+} = require("../configs/config.js");
 
 class Database {
   constructor() {
@@ -10,7 +12,7 @@ class Database {
 
   connect() {
     mongoose
-      .connect(URL_MONGODB, { maxPoolSize: 50 })
+      .connect(`mongodb://${host}:${port}`, { maxPoolSize: 50 })
       .then((_) => {
         console.log("Connect to database Suucess");
       })

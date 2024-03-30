@@ -6,6 +6,8 @@ const dotenv = require("dotenv");
 
 const app = express();
 // Initial middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(morgan("combined"));
 app.use(helmet());
 app.use(compression());
@@ -14,12 +16,7 @@ dotenv.config();
 require("./database/init.database.js");
 
 // Setup routing
-app.get("/", (req, res, next) => {
-  res.status(200).json({
-    message: "Start build project",
-    metadata: "Hello world".repeat(100000),
-  });
-});
+app.use("", require("./routes"));
 // Handling error
 
 module.exports = app;

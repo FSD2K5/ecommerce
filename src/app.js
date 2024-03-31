@@ -18,5 +18,19 @@ require("./database/init.database.js");
 // Setup routing
 app.use("", require("./routes"));
 // Handling error
+app.use((req, res, next) => {
+  const error = new Error("NOT FOUND");
+  error.status = 404;
+  next(error);
+});
+
+app.use((error, req, res, next) => {
+  const statusCode = error.status;
+  return res.status(statusCode).json({
+    code: "AFE1",
+    message: error.message,
+    status: statusCode,
+  });
+});
 
 module.exports = app;

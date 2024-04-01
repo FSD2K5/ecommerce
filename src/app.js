@@ -25,10 +25,10 @@ app.use((req, res, next) => {
 });
 
 app.use((error, req, res, next) => {
-  const statusCode = error.status;
+  const statusCode = error.status || 500;
   return res.status(statusCode).json({
     code: "AFE1",
-    message: error.message,
+    message: error.message || "server invalid",
     status: statusCode,
   });
 });

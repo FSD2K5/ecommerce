@@ -10,6 +10,12 @@ class AccessController {
       metadata: await AccessService.signUp(req.body),
     }).send(res);
   };
+  static login = async (req, res, next) => {
+    new OK({
+      message: "Login Success",
+      metadata: await AccessService.login(req.body),
+    }).send(res);
+  };
 }
 
 module.exports = AccessController;

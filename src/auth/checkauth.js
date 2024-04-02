@@ -1,9 +1,15 @@
 "use strict";
 
 const ApiKeyService = require("../services/apikey.service");
+const { BadRequest } = require("../core/error.response.js");
+const { findKeyStoreByUserId } = require("../services/keytoken.service.js");
+const JWT = require("jsonwebtoken");
+const cryto = require("node:crypto");
 
 const HEADERS = {
   APIKEY: "x-api-key",
+  CLIENT_ID: "x-client-id",
+  AUTHENTICATION: "authentication",
 };
 
 const checkApiKey = async (req, res, next) => {
@@ -57,7 +63,35 @@ const checkPermission = (permission) => {
   };
 };
 
+const checkAuthentication = async (req, res, next) => {
+  // Step 1: check userId
+  const userId = req.headers[HEADERS.CLIENT_ID];
+  if (!userId) throw new BadRequest("Missing UserId !!!");
+  // Step 2: find KeyStore by userID
+  const keyStore = await findKeyStoreByUserId(userId);
+  if (!keyStore) throw new BadRequest("User dont register !!");
+  // Step 3: check accessToken
+  const accessToken = req.headers[HEADERS.AUTHENTICATION];
+  if (!accessToken) throw new BadRequest("Missing AccessToken !!!");
+  // Step 4: verify accessToken
+  try {
+    const publicKey = await cryto.createPublicKey(keyStore.publicKey);
+    const decode = JWT.verify(accessToken, publicKey);
+    if (!decode) throw new BadRequest("Decode null!!");
+    // Step 5: check userId in header and userId in decode
+    if (userId != decode.userId) throw new BadRequest("Decode error !!!");
+    console.log(decode.userId);
+    // next
+    req.keyStore = keyStore;
+    next();
+  } catch (error) {
+    console.log(error.message);
+    next(error);
+  }
+};
+
 module.exports = {
   checkApiKey,
   checkPermission,
+  checkAuthentication,
 };

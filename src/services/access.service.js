@@ -9,7 +9,8 @@ const { getInfo } = require("../utils/getInfo.js");
 const { BadRequest } = require("../core/error.response.js");
 const ShopService = require("./shop.service.js");
 const keyTokenService = require("./keytoken.service.js");
-
+const JWT = require("jsonwebtoken");
+const crypto = require("node:crypto");
 const ROLES = {
   SHOP: "001",
   WRTTOR: "002",
@@ -103,6 +104,13 @@ class AccessService {
       shopInfo: getInfo(["name", "email"], shop),
       accessToken: tokenPair.accessToken,
       refreshToken: tokenPair.refreshToken,
+    };
+  };
+
+  static logout = async ({ keyStore }) => {
+    await keyTokenService.deleteKeyToken(keyStore.userId);
+    return {
+      data: "Deleted Success",
     };
   };
 }

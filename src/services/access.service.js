@@ -2,15 +2,14 @@
 
 const shopModel = require("../models/shop.model.js");
 const bcrypt = require("bcrypt");
-const cryto = require("node:crypto");
+const crypto = require("node:crypto");
 const { createKeyToken } = require("./keytoken.service.js");
-const { createToken } = require("../auth/auth.utils.js");
+const { createToken, verifyToken } = require("../auth/auth.utils.js");
 const { getInfo } = require("../utils/getInfo.js");
 const { BadRequest } = require("../core/error.response.js");
 const ShopService = require("./shop.service.js");
 const keyTokenService = require("./keytoken.service.js");
-const JWT = require("jsonwebtoken");
-const crypto = require("node:crypto");
+const generateKeys = require("../utils/generateKeys.js");
 const ROLES = {
   SHOP: "001",
   WRTTOR: "002",
@@ -34,17 +33,7 @@ class AccessService {
     });
     if (!newShop) throw new BadRequest("Signup shop Fail !!");
     // Step 4: create a public yey and private key for new shop
-    const { publicKey, privateKey } = cryto.generateKeyPairSync("rsa", {
-      modulusLength: 4096,
-      publicKeyEncoding: {
-        type: "pkcs1",
-        format: "pem",
-      },
-      privateKeyEncoding: {
-        type: "pkcs1",
-        format: "pem",
-      },
-    });
+    const { publicKey, privateKey } = generateKeys();
     const publicKeyString = await createKeyToken({
       userId: newShop._id,
       publicKey,
@@ -52,14 +41,18 @@ class AccessService {
     });
     if (!publicKeyString) throw new BadRequest("Public Key invalid !!!");
     // Step 6: create access token and refresh token
-    const paylode = { userId: newShop._id, email: newShop.email };
+    const paylode = {
+      userId: newShop._id,
+      name: newShop.name,
+      email: newShop.email,
+    };
     const { accessToken, refreshToken } = createToken(
       paylode,
       publicKeyString,
       privateKey
     );
     return {
-      shopInfo: getInfo(["name", "email"], newShop),
+      shopInfo: getInfo(["_id", "name", "email"], newShop),
       accessToken,
       refreshToken,
     };
@@ -73,17 +66,7 @@ class AccessService {
     const match = await bcrypt.compare(password, shop.password);
     if (!match) throw new BadRequest("Shop invalid 2!!!");
     // Step 3: create public key and private key
-    const { publicKey, privateKey } = cryto.generateKeyPairSync("rsa", {
-      modulusLength: 4096,
-      publicKeyEncoding: {
-        type: "pkcs1",
-        format: "pem",
-      },
-      privateKeyEncoding: {
-        type: "pkcs1",
-        format: "pem",
-      },
-    });
+    const { publicKey, privateKey } = generateKeys();
     // Step 4: create Acces token and refresh token
     const payload = {
       userId: shop._id,
@@ -101,7 +84,7 @@ class AccessService {
     });
     if (!keyStore) throw new BadRequest("Login fail !!!");
     return {
-      shopInfo: getInfo(["name", "email"], shop),
+      shopInfo: getInfo(["_id", "name", "email"], shop),
       accessToken: tokenPair.accessToken,
       refreshToken: tokenPair.refreshToken,
     };
@@ -110,7 +93,52 @@ class AccessService {
   static logout = async ({ keyStore }) => {
     await keyTokenService.deleteKeyToken(keyStore.userId);
     return {
-      data: "Deleted Success",
+      description: "Deleted Success",
+    };
+  };
+
+  static handleRefreshToken = async ({ refreshtoken }) => {
+    const keyToken = await keyTokenService.findByRefreshTokenUsed(refreshtoken);
+    console.log(keyToken);
+    // Case 1: Refresh token exists in refreshTokenUsed
+    if (keyToken) {
+      // Step 1: decode refreshToken
+      const decode = verifyToken(refreshtoken, keyToken.publicKey);
+      // Step 2: delete keyStore of User
+      await keyTokenService.deleteKeyToken(decode.userId);
+      throw new BadRequest("Warning !!!");
+    }
+    // Case 2: Refresh token don't exists in refreshTokenUsed
+    // Step 1: find refreshtoken in KeyToken collection
+    const holderShop = await keyTokenService.findRefreshToken(refreshtoken);
+    if (!holderShop) throw new BadRequest("Shop not found !!");
+    // Step 2: decode refreshtoken
+    const { userId, name, email } = verifyToken(
+      refreshtoken,
+      holderShop.publicKey
+    );
+    // Step 3: create new accessToken and refreshtoken
+    const { publicKey, privateKey } = generateKeys();
+    const publicKeyString = publicKey.toString();
+    const tokenPair = createToken(
+      { userId, name, email },
+      publicKeyString,
+      privateKey
+    );
+    // Step 4: update Public Key
+    await keyTokenService.updatePublicKey({
+      userId: userId,
+      publicKeyString,
+    });
+    // Step 5: update refreshTokenUsed and refreshtoken of shop
+    await keyTokenService.updateRefreshTokenUsed({
+      userId,
+      refreshToken: refreshtoken,
+      newRefreshToken: tokenPair.refreshToken,
+    });
+
+    return {
+      tokenPair,
     };
   };
 }

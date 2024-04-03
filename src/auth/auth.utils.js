@@ -13,18 +13,26 @@ function createToken(payload, publicKeyString, privateKey) {
     algorithm: "RS256",
     expiresIn: "7 days",
   });
-  JWT.verify(accessToken, publicKey, (err, decode) => {
-    if (err) {
-      return {
-        code: "ADE1",
-        message: "Decode error",
-      };
+  JWT.verify(accessToken, publicKey, (error, decode) => {
+    if (error) {
+      throw error;
     }
     console.log("[V] :: decode ::", decode);
   });
   return { accessToken, refreshToken };
 }
 
+function verifyToken(token, publicKeyString) {
+  const publicKey = crypto.createPublicKey(publicKeyString);
+  try {
+    const decode = JWT.verify(token, publicKey);
+    return decode;
+  } catch (error) {
+    throw error;
+  }
+}
+
 module.exports = {
   createToken,
+  verifyToken,
 };

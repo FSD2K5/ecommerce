@@ -2,8 +2,10 @@
 
 # Nodejs: version 20.11.1
 
-## The project is based on the project of Tip JavaScript
+# Run project
 
-# youtube: https://www.youtube.com/@anonystick
+- Step 1: npm install
+
+- Step 2: node --watch server.js
 
 ### The project is cloned by Anh Quan

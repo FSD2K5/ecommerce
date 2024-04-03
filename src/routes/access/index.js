@@ -14,4 +14,8 @@ route.use(handleError(checkAuthentication));
 
 // logout
 route.post("/shop/logout", handleError(AccessController.logout));
+route.post(
+  "/shop/handle_refreshtoken",
+  handleError(AccessController.handleRefreshToken)
+);
 module.exports = route;

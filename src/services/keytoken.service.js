@@ -30,16 +30,25 @@ class keyTokenService {
     await keyTokenModel.deleteOne({ userId: new Types.ObjectId(userId) });
   };
 
-  static findRefreshTokenUsed = async (refreshToken) => {
-    const keyStore = await keyTokenModel.find({
-      refreshTokenUsed: refreshToken,
-    });
+  static findByRefreshTokenUsed = async (refreshToken) => {
+    const keyStore = await keyTokenModel
+      .findOne({
+        refreshTokenUsed: refreshToken,
+      })
+      .lean();
     return keyStore;
   };
 
   static findRefreshToken = async (refreshToken) => {
     const keyStore = await keyTokenModel.findOne({ refreshToken }).lean();
     return keyStore;
+  };
+
+  static updatePublicKey = async ({ userId, publicKeyString }) => {
+    return await keyTokenModel.updateOne(
+      { userId },
+      { $set: { publicKey: publicKeyString } }
+    );
   };
 
   static updateRefreshTokenUsed = async ({

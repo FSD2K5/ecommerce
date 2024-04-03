@@ -22,6 +22,17 @@ class OK extends SuccessResponse {
   }
 }
 
+class Created extends SuccessResponse {
+  constructor({
+    message = ReasonPhrases.CREATED,
+    statusCode = StatusCodes.CREATED,
+    metadata,
+  }) {
+    super({ message, statusCode, metadata });
+  }
+}
+
 module.exports = {
   OK,
+  Created,
 };

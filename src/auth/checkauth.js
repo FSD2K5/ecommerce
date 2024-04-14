@@ -9,6 +9,7 @@ const HEADERS = {
   APIKEY: "x-api-key",
   CLIENT_ID: "x-client-id",
   AUTHENTICATION: "authentication",
+  REFRESHTOKEN: "refreshtoken",
 };
 
 const checkApiKey = async (req, res, next) => {
@@ -21,7 +22,7 @@ const checkApiKey = async (req, res, next) => {
     req.objectKey = apiKeyDocument;
     next();
   } catch (error) {
-    throw new UnAthorizedError({ message: "CHECK API KEY ERROR" });
+    next(error);
   }
 };
 
@@ -48,6 +49,25 @@ const checkAuthentication = async (req, res, next) => {
   const keyStore = await findKeyStoreByUserId(userId);
   if (!keyStore) throw new UnAthorizedError({ message: "User Error !!!" });
   // Step 3: check accessToken
+  // Case: header exists Refresh token
+  if (req.headers[HEADERS.REFRESHTOKEN]) {
+    const refreshToken = req.headers[HEADERS.REFRESHTOKEN];
+    // Step 4: verify refresh token
+    try {
+      const decode = await verifyToken(refreshToken, keyStore.publicKey);
+      // Step 5: check userId in header and userId in decode
+      if (userId != decode.userId)
+        throw new UnAthorizedError({ message: "Authorized error !!!" });
+      // next
+      req.keyStore = keyStore;
+      req.userId = decode.userId;
+      next();
+    } catch (error) {
+      console.log(error.message);
+      throw error;
+    }
+  }
+  // Case: header exists accesstoken
   const accessToken = req.headers[HEADERS.AUTHENTICATION];
   if (!accessToken)
     throw new UnAthorizedError({ message: "Missing AccessToken !!!" });
@@ -59,6 +79,7 @@ const checkAuthentication = async (req, res, next) => {
       throw new UnAthorizedError({ message: "Authorized error !!!" });
     // next
     req.keyStore = keyStore;
+    req.userId = decode.userId;
     next();
   } catch (error) {
     console.log(error.message);

@@ -1,6 +1,7 @@
 "use strict";
 
 const mongoose = require("mongoose");
+const slugify = require("slugify");
 const NAME_DOCUMENT = "Product";
 const NAME_COLLECTION = "Products";
 
@@ -15,16 +16,41 @@ let productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    productThumb: {
+      type: String,
+    },
     productDescription: {
       type: String,
     },
     productPrice: {
-      type: String,
+      type: Number,
       require: true,
     },
     productQuality: {
-      type: String,
+      type: Number,
       required: true,
+    },
+    productVarition: {
+      type: Array,
+      default: [],
+    },
+    productSlug: {
+      type: String,
+    },
+    productRating: {
+      type: Number,
+      default: 4.5,
+      min: [1.0, "Rating must be above 1.0"],
+      max: [5.0, "Rating must be above 5.0"],
+      set: (val) => Math.round(val * 10) / 10,
+    },
+    isDraft: {
+      type: Boolean,
+      default: true,
+    },
+    isPublished: {
+      type: Boolean,
+      default: false,
     },
     productType: {
       type: String,
@@ -41,6 +67,12 @@ let productSchema = new mongoose.Schema(
     collection: NAME_COLLECTION,
   }
 );
+
+// Middleware
+productSchema.pre("save", function (next) {
+  this.productSlug = slugify(this.productName, { lower: true });
+  next();
+});
 
 const clothingSchema = new mongoose.Schema(
   {

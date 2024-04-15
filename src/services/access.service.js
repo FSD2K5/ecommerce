@@ -21,7 +21,8 @@ class AccessService {
   static signUp = async ({ name, email, password }) => {
     // Step 1: Check email in Database
     const holderEmail = await shopModel.findOne({ email }).lean();
-    if (holderEmail) throw new BadRequest("Email already register!!!");
+    if (holderEmail)
+      throw new BadRequest({ message: "Email already register!!!" });
     // Step 2: Hash Password
     const hashPassword = await bcrypt.hash(password, 10);
     // Step 3: create a shop
@@ -31,7 +32,7 @@ class AccessService {
       password: hashPassword,
       roles: ROLES.SHOP,
     });
-    if (!newShop) throw new BadRequest("Signup shop Fail !!");
+    if (!newShop) throw new BadRequest({ message: "Signup shop Fail !!" });
     // Step 4: create a public yey and private key for new shop
     const { publicKey, privateKey } = generateKeys();
     const publicKeyString = await createKeyToken({
@@ -39,7 +40,8 @@ class AccessService {
       publicKey,
       refreshToken: null,
     });
-    if (!publicKeyString) throw new BadRequest("Public Key invalid !!!");
+    if (!publicKeyString)
+      throw new BadRequest({ message: "Public Key invalid !!!" });
     // Step 6: create access token and refresh token
     const paylode = {
       userId: newShop._id,
@@ -61,10 +63,10 @@ class AccessService {
   static login = async ({ email, password }) => {
     // Step 1: Check email
     const shop = await ShopService.findByEmail({ email });
-    if (!shop) throw new BadRequest("Shop invalid 1!!!");
+    if (!shop) throw new BadRequest({ message: "Shop invalid 1!!!" });
     // Step 2: check password
     const match = await bcrypt.compare(password, shop.password);
-    if (!match) throw new BadRequest("Shop invalid 2!!!");
+    if (!match) throw new BadRequest({ message: "Shop invalid 2!!!" });
     // Step 3: create public key and private key
     const { publicKey, privateKey } = generateKeys();
     // Step 4: create Acces token and refresh token
@@ -75,14 +77,14 @@ class AccessService {
     };
     const publicKeyString = publicKey.toString();
     const tokenPair = createToken(payload, publicKeyString, privateKey);
-    if (!tokenPair) throw new BadRequest("Login Fail !!! ");
+    if (!tokenPair) throw new BadRequest({ message: "Login Fail !!! " });
     // Step 5: Update keyToken by user id
     const keyStore = await keyTokenService.createKeyToken({
       userId: shop._id,
       publicKey,
       refreshToken: tokenPair.refreshToken,
     });
-    if (!keyStore) throw new BadRequest("Login fail !!!");
+    if (!keyStore) throw new BadRequest({ message: "Login fail !!!" });
     return {
       shopInfo: getInfo(["_id", "name", "email"], shop),
       accessToken: tokenPair.accessToken,
@@ -106,12 +108,12 @@ class AccessService {
       const decode = verifyToken(refreshtoken, keyToken.publicKey);
       // Step 2: delete keyStore of User
       await keyTokenService.deleteKeyToken(decode.userId);
-      throw new BadRequest("Warning !!!");
+      throw new BadRequest({ message: "Warning !!!" });
     }
     // Case 2: Refresh token don't exists in refreshTokenUsed
     // Step 1: find refreshtoken in KeyToken collection
     const holderShop = await keyTokenService.findRefreshToken(refreshtoken);
-    if (!holderShop) throw new BadRequest("Shop not found !!");
+    if (!holderShop) throw new BadRequest({ message: "Shop not found !!" });
     // Step 2: decode refreshtoken
     const { userId, name, email } = verifyToken(
       refreshtoken,

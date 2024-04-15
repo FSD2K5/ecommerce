@@ -15,7 +15,7 @@ class ProductFactory {
       case "clothing":
         return await new Clothing(payload).createProductColthing(shopId);
       default:
-        throw new BadRequest("Type product dont exisit !!!");
+        throw new BadRequest({ message: "Type product dont exisit !!!" });
     }
   }
 }
@@ -49,9 +49,10 @@ class Clothing extends Product {
       ...this.productAttribute,
       shopId: shopId,
     });
-    if (!newAttribute) throw new BadRequest("create product fail!!!");
+    if (!newAttribute)
+      throw new BadRequest({ message: "create product fail!!!" });
     const newProduct = await super.createProduct(newAttribute._id, shopId);
-    if (!newProduct) throw new BadRequest("Create product Error");
+    if (!newProduct) throw new BadRequest({ message: "Create product Error" });
     return newProduct;
   }
 }
@@ -62,9 +63,10 @@ class Electronic extends Product {
       ...this.productAttribute,
       shopId: shopId,
     });
-    if (!newAttribute) throw new BadRequest("create product fail!!!");
+    if (!newAttribute)
+      throw new BadRequest({ message: "create product fail!!!" });
     const newProduct = await super.createProduct(newAttribute._id, shopId);
-    if (!newProduct) throw new BadRequest("Create product Error");
+    if (!newProduct) throw new BadRequest({ message: "Create product Error" });
     return newProduct;
   }
 }
